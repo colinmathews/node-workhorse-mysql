@@ -1,0 +1,43 @@
+{
+  "name": "node-workhorse-mysql",
+  "version": "0.0.0",
+  "description": "Extensions to support storing data in MySQL",
+  "main": "dist/index.js",
+  "dependencies": {
+    "es6-promise": "^3.1.2",
+    "node-mysql2-wrapper": "^1.0.0",
+    "node-uuid": "^1.4.7",
+    "node-workhorse": "1.0.1",
+    "source-map-support": "^0.4.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5",
+    "tsc": "^1.20150623.0",
+    "typescript": "^1.7.5",
+    "typings": "^0.6.8",
+    "uncommitted": "^1.0.0"
+  },
+  "scripts": {
+    "build": "npm run clean && npm run typings install && npm run tsc",
+    "predopublish": "npm run build && uncommitted",
+    "dopublish": "npm publish",
+    "tsc": "tsc",
+    "clean": "rm -rf dist",
+    "clean-tests": "rm -rf dist/test",
+    "tsc:w": "tsc -w",
+    "pretest": "npm run build",
+    "test": "mocha",
+    "typings": "typings"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/colinmathews/node-workhorse-mysql.git"
+  },
+  "author": "Colin Mathews",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/colinmathews/node-workhorse-mysql/issues"
+  },
+  "homepage": "https://github.com/colinmathews/node-workhorse-mysql#readme"
+}
