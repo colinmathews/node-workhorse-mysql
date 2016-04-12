@@ -2,16 +2,6 @@
 var es6_promise_1 = require('es6-promise');
 var node_workhorse_1 = require('node-workhorse');
 var node_mysql2_wrapper_1 = require('node-mysql2-wrapper');
-var SerializeContainer = (function () {
-    function SerializeContainer() {
-    }
-    return SerializeContainer;
-}());
-exports.SerializeContainer = SerializeContainer;
-function serializeWork(work) {
-    throw new Error('Not implemented yet');
-}
-exports.serializeWork = serializeWork;
 var MySQLStateManager = (function () {
     function MySQLStateManager(config, workTableName, workResultTableName, workChildrenTableName) {
         if (workTableName === void 0) { workTableName = 'work'; }
@@ -27,30 +17,6 @@ var MySQLStateManager = (function () {
         var exec = this.sql.transaction();
         var promise = this.saveOnePromise(exec, work);
         return exec.done(promise);
-    };
-    MySQLStateManager.prototype.saveOnePromise = function (exec, work) {
-        var setArgs = {
-            work_load_href: work.workLoadHref,
-            input_json: JSON.stringify(work.input),
-            ancestor_level: work.ancestorLevel,
-            parent_id: work.parentID ? parseInt(work.parentID, 10) : null
-        };
-        if (!work.id) {
-            return node_mysql2_wrapper_1.insert(exec, this.workTableName, [setArgs])
-                .then(function (result) {
-                work.id = result.insertId.toString();
-                return work;
-            });
-        }
-        return node_mysql2_wrapper_1.update(exec, this.workTableName, setArgs, {
-            id: parseInt(work.id, 10)
-        })
-            .then(function (result) {
-            if (result.affectedRows !== 1) {
-                throw new Error("Expected only one row to be affected by updating work id " + work.id + ", but " + result.affectedRows + " were updated instead.");
-            }
-            return work;
-        });
     };
     MySQLStateManager.prototype.saveAll = function (work) {
         var _this = this;
@@ -68,38 +34,9 @@ var MySQLStateManager = (function () {
         var promise = this.saveWorkResult(exec, work.result)
             .then(function () {
             work.resultID = work.result.id;
-            return node_mysql2_wrapper_1.update(exec, _this.workTableName, {
-                result_id: work.resultID
-            }, {
-                id: parseInt(work.id, 10)
-            });
+            return node_mysql2_wrapper_1.update(exec, _this.workTableName, { result_id: work.resultID }, { id: parseInt(work.id, 10) });
         });
         return exec.done(promise);
-    };
-    MySQLStateManager.prototype.saveWorkResult = function (exec, workResult) {
-        var setArgs = {
-            started: workResult.started,
-            ended: workResult.ended,
-            result_json: workResult.result ? JSON.stringify(workResult.result) : null,
-            error_message: workResult.error ? workResult.error.message : null,
-            error_stack: workResult.error ? workResult.error.stack : null,
-            error_type: workResult.error ? workResult.error.name : null,
-            error_fields_json: workResult.error ? JSON.stringify(workResult.error) : null,
-        };
-        if (!workResult.id) {
-            return node_mysql2_wrapper_1.insert(exec, this.workResultTableName, [setArgs])
-                .then(function (result) {
-                workResult.id = result.insertId;
-            });
-        }
-        return node_mysql2_wrapper_1.update(exec, this.workResultTableName, setArgs, {
-            id: workResult.id
-        })
-            .then(function (result) {
-            if (result.affectedRows !== 1) {
-                throw new Error("Expected only one row to be affected by updating work result id " + workResult.id + ", but " + result.affectedRows + " were updated instead.");
-            }
-        });
     };
     MySQLStateManager.prototype.saveWorkEnded = function (work) {
         if (work.resultID) {
@@ -121,11 +58,7 @@ var MySQLStateManager = (function () {
         var promise = this.saveWorkResult(exec, work.finalizerResult)
             .then(function () {
             work.finalizerResultID = work.finalizerResult.id;
-            return node_mysql2_wrapper_1.update(exec, _this.workTableName, {
-                finalizer_result_id: work.finalizerResultID
-            }, {
-                id: parseInt(work.id, 10)
-            });
+            return node_mysql2_wrapper_1.update(exec, _this.workTableName, { finalizer_result_id: work.finalizerResultID }, { id: parseInt(work.id, 10) });
         });
         return exec.done(promise);
     };
@@ -154,9 +87,7 @@ var MySQLStateManager = (function () {
     };
     MySQLStateManager.prototype.childWorkFinished = function (work, parent) {
         var exec = this.sql.transaction();
-        var promise = node_mysql2_wrapper_1.update(exec, this.workChildrenTableName, {
-            is_finished: true
-        }, {
+        var promise = node_mysql2_wrapper_1.update(exec, this.workChildrenTableName, { is_finished: true }, {
             parent_work_id: parseInt(parent.id, 10),
             child_work_id: parseInt(work.id, 10),
         });
@@ -165,7 +96,6 @@ var MySQLStateManager = (function () {
     MySQLStateManager.prototype.load = function (id) {
         var _this = this;
         var exec = this.sql.transaction();
-        var work;
         var promise = node_mysql2_wrapper_1.selectOne(exec, this.workTableName, {
             id: parseInt(id, 10)
         })
@@ -191,6 +121,57 @@ var MySQLStateManager = (function () {
             return es6_promise_1.Promise.all(promises);
         });
         return exec.done(promise);
+    };
+    MySQLStateManager.prototype.saveOnePromise = function (exec, work) {
+        var setArgs = {
+            work_load_href: work.workLoadHref,
+            input_json: JSON.stringify(work.input),
+            ancestor_level: work.ancestorLevel,
+            parent_id: work.parentID ? parseInt(work.parentID, 10) : null
+        };
+        if (!work.id) {
+            return node_mysql2_wrapper_1.insert(exec, this.workTableName, [setArgs])
+                .then(function (result) {
+                work.id = result.insertId.toString();
+                return work;
+            });
+        }
+        return node_mysql2_wrapper_1.update(exec, this.workTableName, setArgs, {
+            id: parseInt(work.id, 10)
+        })
+            .then(function (result) {
+            if (result.affectedRows !== 1) {
+                throw new Error(("Expected only one row to be affected by updating work id " + work.id + ",") +
+                    ("but " + result.affectedRows + " were updated instead."));
+            }
+            return work;
+        });
+    };
+    MySQLStateManager.prototype.saveWorkResult = function (exec, workResult) {
+        var setArgs = {
+            started: workResult.started,
+            ended: workResult.ended,
+            result_json: workResult.result ? JSON.stringify(workResult.result) : null,
+            error_message: workResult.error ? workResult.error.message : null,
+            error_stack: workResult.error ? workResult.error.stack : null,
+            error_type: workResult.error ? workResult.error.name : null,
+            error_fields_json: workResult.error ? JSON.stringify(workResult.error) : null,
+        };
+        if (!workResult.id) {
+            return node_mysql2_wrapper_1.insert(exec, this.workResultTableName, [setArgs])
+                .then(function (result) {
+                workResult.id = result.insertId;
+            });
+        }
+        return node_mysql2_wrapper_1.update(exec, this.workResultTableName, setArgs, {
+            id: workResult.id
+        })
+            .then(function (result) {
+            if (result.affectedRows !== 1) {
+                throw new Error('Expected only one row to be affected by updating work result id ' +
+                    (workResult.id + ", but " + result.affectedRows + " were updated instead."));
+            }
+        });
     };
     MySQLStateManager.prototype.finishLoadingWork = function (exec, workRow) {
         var _this = this;

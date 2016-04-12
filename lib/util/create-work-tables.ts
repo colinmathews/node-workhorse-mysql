@@ -1,11 +1,12 @@
 import { Promise } from 'es6-promise';
-import { MySQL, Execution, MySQLConfig, create, addForeignKey } from 'node-mysql2-wrapper';
+import { MySQL, Execution, create, addForeignKey } from 'node-mysql2-wrapper';
 
 export default function createWorkTables(
-  sql:MySQL, 
-  workTableName: string = 'work', 
-  workResultTableName: string = 'work_result', 
+  sql: MySQL,
+  workTableName: string = 'work',
+  workResultTableName: string = 'work_result',
   workChildrenTableName: string = 'work_children'): Promise<any> {
+  'use strict';
 
   let exec = sql.transaction();
   let promise = createWorkTable(exec, workTableName)
@@ -34,7 +35,8 @@ export default function createWorkTables(
   return exec.done(promise);
 }
 
-function createWorkTable(sql:Execution, tableName: string): Promise<any> {
+function createWorkTable(sql: Execution, tableName: string): Promise<any> {
+  'use strict';
   return create(sql, tableName, {
     id: {
       definition: 'INT NOT NULL AUTO_INCREMENT',
@@ -62,6 +64,7 @@ function createWorkTable(sql:Execution, tableName: string): Promise<any> {
 }
 
 function createWorkResultTable(sql: Execution, tableName: string): Promise<any> {
+  'use strict';
   return create(sql, tableName, {
     id: {
       definition: 'INT NOT NULL AUTO_INCREMENT',
@@ -92,6 +95,7 @@ function createWorkResultTable(sql: Execution, tableName: string): Promise<any> 
 }
 
 function createWorkChildrenTable(sql: Execution, tableName: string): Promise<any> {
+  'use strict';
   return create(sql, tableName, {
     parent_work_id: {
       definition: 'INT NOT NULL',

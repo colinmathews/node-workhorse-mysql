@@ -1,16 +1,6 @@
 import { Promise } from 'es6-promise';
 import { Work, WorkResult, StateManager, Workhorse} from 'node-workhorse';
-import { MySQL, MySQLConfig, Column, Execution, insert, update, select, selectOne } from 'node-mysql2-wrapper';
-
-export class SerializeContainer {
-  workCols: Column[]
-  resultCols: Column[]
-  childrenCols: Column[]
-}
-
-export function serializeWork(work: Work): SerializeContainer {
-  throw new Error('Not implemented yet');
-}
+import { MySQL, MySQLConfig, Execution, insert, update, select, selectOne } from 'node-mysql2-wrapper';
 
 export default class MySQLStateManager implements StateManager {
   workhorse: Workhorse;
@@ -18,7 +8,7 @@ export default class MySQLStateManager implements StateManager {
 
   constructor(
     public config: MySQLConfig,
-    public workTableName:string = 'work',
+    public workTableName: string = 'work',
     public workResultTableName: string = 'work_result',
     public workChildrenTableName: string = 'work_children') {
     this.sql = new MySQL(this.config);
@@ -30,32 +20,6 @@ export default class MySQLStateManager implements StateManager {
     return exec.done(promise);
   }
 
-  private saveOnePromise(exec:Execution, work:Work): Promise<any> {
-    let setArgs = {
-      work_load_href: work.workLoadHref,
-      input_json: JSON.stringify(work.input),
-      ancestor_level: work.ancestorLevel,
-      parent_id: work.parentID ? parseInt(work.parentID, 10) : null
-    };
-
-    if (!work.id) {
-      return insert(exec, this.workTableName, [setArgs])
-      .then((result) => {
-        work.id = result.insertId.toString();
-        return work;
-      });
-    }
-    return update(exec, this.workTableName, setArgs, {
-      id: parseInt(work.id, 10)
-    })
-    .then((result) => {
-      if (result.affectedRows !== 1) {
-        throw new Error(`Expected only one row to be affected by updating work id ${work.id}, but ${result.affectedRows} were updated instead.`);
-      }
-      return work;
-    });
-  }
-
   saveAll(work: Work[]): Promise<any> {
     let exec = this.sql.transaction();
     let promises = work.map((row) => this.saveOnePromise(exec, row));
@@ -64,90 +28,65 @@ export default class MySQLStateManager implements StateManager {
   }
 
   saveWorkStarted(work: Work): Promise<any> {
-    if ((<any>work).resultID) {
-      (<any>work.result).id = (<any>work).resultID;
+    if ((work as any).resultID) {
+      (work.result as any).id = (work as any).resultID;
     }
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.result)
     .then(() => {
-      (<any>work).resultID = (<any>work.result).id;
-      return update(exec, this.workTableName, {
-        result_id: (<any>work).resultID
-      }, {
-        id: parseInt(work.id, 10)
-      });
+      (work as any).resultID = (work.result as any).id;
+      return update(
+        exec,
+        this.workTableName,
+        { result_id: (work as any).resultID },
+        { id: parseInt(work.id, 10) }
+      );
     });
     return exec.done(promise);
   }
 
-  private saveWorkResult(exec:Execution, workResult:WorkResult): Promise<any> {
-    let setArgs = {
-      started: workResult.started,
-      ended: workResult.ended,
-      result_json: workResult.result ? JSON.stringify(workResult.result) : null,
-      error_message: workResult.error ? workResult.error.message : null,
-      error_stack: workResult.error ? workResult.error.stack : null,
-      error_type: workResult.error ? workResult.error.name : null,
-      error_fields_json: workResult.error ? JSON.stringify(workResult.error) : null,
-    };
-
-    if (!(<any>workResult).id) {
-      return insert(exec, this.workResultTableName, [setArgs])
-      .then((result) => {
-        (<any>workResult).id = result.insertId;
-      });
-    }
-    return update(exec, this.workResultTableName, setArgs, {
-      id: (<any>workResult).id
-    })
-    .then((result) => {
-      if (result.affectedRows !== 1) {
-        throw new Error(`Expected only one row to be affected by updating work result id ${(<any>workResult).id}, but ${result.affectedRows} were updated instead.`);
-      }
-    });
-  }
-
   saveWorkEnded(work: Work): Promise<any> {
-    if ((<any>work).resultID) {
-      (<any>work.result).id = (<any>work).resultID;
+    if ((work as any).resultID) {
+      (work.result as any).id = (work as any).resultID;
     }
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.result)
     .then(() => {
-      (<any>work).resultID = (<any>work.result).id;
+      (work as any).resultID = (work.result as any).id;
     });
     return exec.done(promise);
   }
 
   saveFinalizerStarted(work: Work): Promise<any> {
-    if ((<any>work)) {
-      (<any>work.finalizerResult).id = (<any>work).finalizerResultID;
+    if ((work as any)) {
+      (work.finalizerResult as any).id = (work as any).finalizerResultID;
     }
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
     .then(() => {
-      (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
-      return update(exec, this.workTableName, {
-        finalizer_result_id: (<any>work).finalizerResultID
-      }, {
-          id: parseInt(work.id, 10)
-        })
+      (work as any).finalizerResultID = (work.finalizerResult as any).id;
+      return update(
+        exec,
+        this.workTableName,
+        { finalizer_result_id: (work as any).finalizerResultID },
+        { id: parseInt(work.id, 10) }
+      );
     });
     return exec.done(promise);
   }
 
   saveFinalizerEnded(work: Work): Promise<any> {
-    if ((<any>work)) {
-      (<any>work.finalizerResult).id = (<any>work).finalizerResultID;
+    if ((work as any)) {
+      (work.finalizerResult as any).id = (work as any).finalizerResultID;
     }
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
     .then(() => {
-      (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
+      (work as any).finalizerResultID = (work.finalizerResult as any).id;
     });
     return exec.done(promise);
   }
@@ -167,18 +106,20 @@ export default class MySQLStateManager implements StateManager {
 
   childWorkFinished(work: Work, parent: Work): Promise<boolean> {
     let exec = this.sql.transaction();
-    let promise = update(exec, this.workChildrenTableName, {
-      is_finished: true
-    }, {
-      parent_work_id: parseInt(parent.id, 10),
-      child_work_id: parseInt(work.id, 10),
-    });
+    let promise = update(
+      exec,
+      this.workChildrenTableName,
+      { is_finished: true },
+      {
+        parent_work_id: parseInt(parent.id, 10),
+        child_work_id: parseInt(work.id, 10),
+      }
+    );
     return exec.done(promise);
   }
 
   load(id: string): Promise<Work> {
     let exec = this.sql.transaction();
-    let work:Work;
     let promise = selectOne(exec, this.workTableName, {
       id: parseInt(id, 10)
     })
@@ -196,36 +137,91 @@ export default class MySQLStateManager implements StateManager {
       return Promise.resolve([]);
     }
     let exec = this.sql.transaction();
-    let promise = exec.query(`select * from ${this.workTableName} where id in (:ids)`, { 
+    let promise = exec.query(`select * from ${this.workTableName} where id in (:ids)`, {
       ids: ids.map((row) => parseInt(row, 10))
     })
     .then((workRows) => {
       let promises = workRows.map((workRow) => this.finishLoadingWork(exec, workRow));
       return Promise.all(promises);
-    })
+    });
     return exec.done(promise);
   }
 
-  private finishLoadingWork(exec:Execution, workRow): Promise<Work> {
+  private saveOnePromise(exec: Execution, work: Work): Promise<any> {
+    let setArgs = {
+      work_load_href: work.workLoadHref,
+      input_json: JSON.stringify(work.input),
+      ancestor_level: work.ancestorLevel,
+      parent_id: work.parentID ? parseInt(work.parentID, 10) : null
+    };
+
+    if (!work.id) {
+      return insert(exec, this.workTableName, [setArgs])
+        .then((result) => {
+          work.id = result.insertId.toString();
+          return work;
+        });
+    }
+    return update(exec, this.workTableName, setArgs, {
+      id: parseInt(work.id, 10)
+    })
+      .then((result) => {
+        if (result.affectedRows !== 1) {
+          throw new Error(`Expected only one row to be affected by updating work id ${work.id},` +
+            `but ${result.affectedRows} were updated instead.`);
+        }
+        return work;
+      });
+  }
+
+  private saveWorkResult(exec: Execution, workResult: WorkResult): Promise<any> {
+    let setArgs = {
+      started: workResult.started,
+      ended: workResult.ended,
+      result_json: workResult.result ? JSON.stringify(workResult.result) : null,
+      error_message: workResult.error ? workResult.error.message : null,
+      error_stack: workResult.error ? workResult.error.stack : null,
+      error_type: workResult.error ? workResult.error.name : null,
+      error_fields_json: workResult.error ? JSON.stringify(workResult.error) : null,
+    };
+
+    if (!(workResult as any).id) {
+      return insert(exec, this.workResultTableName, [setArgs])
+        .then((result) => {
+          (workResult as any).id = result.insertId;
+        });
+    }
+    return update(exec, this.workResultTableName, setArgs, {
+      id: (workResult as any).id
+    })
+      .then((result) => {
+        if (result.affectedRows !== 1) {
+          throw new Error('Expected only one row to be affected by updating work result id ' +
+            `${(workResult as any).id}, but ${result.affectedRows} were updated instead.`);
+        }
+      });
+  }
+
+  private finishLoadingWork(exec: Execution, workRow: any): Promise<Work> {
     let work = this.deserializeWork(workRow);
     return this.loadWorkResult(exec, workRow.result_id)
     .then((result) => {
       if (result) {
         work.result = this.deserializeResult(result);
-        (<any>work).resultID = (<any>work.result).id;
+        (work as any).resultID = (work.result as any).id;
       }
       return this.loadWorkResult(exec, workRow.finalizer_result_id);
     })
     .then((result) => {
       if (result) {
         work.finalizerResult = this.deserializeResult(result);
-        (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
+        (work as any).finalizerResultID = (work.finalizerResult as any).id;
       }
       return this.loadChildren(exec, work);
     });
   }
 
-  private loadWorkResult(exec:Execution, id:number): Promise<WorkResult> {
+  private loadWorkResult(exec: Execution, id: number): Promise<WorkResult> {
     if (!id) {
       return Promise.resolve(null);
     }
@@ -234,7 +230,7 @@ export default class MySQLStateManager implements StateManager {
     });
   }
 
-  private loadChildren(exec:Execution, work:Work): Promise<Work> {
+  private loadChildren(exec: Execution, work: Work): Promise<Work> {
     return select(exec, this.workChildrenTableName, {
       parent_work_id: parseInt(work.id, 10)
     })
@@ -247,7 +243,7 @@ export default class MySQLStateManager implements StateManager {
     });
   }
 
-  private deserializeWork(result:any): Work {
+  private deserializeWork(result: any): Work {
     let work = new Work();
     work.ancestorLevel = result.ancestor_level;
     work.id = result.id.toString();
@@ -260,7 +256,7 @@ export default class MySQLStateManager implements StateManager {
   private deserializeResult(result: any): WorkResult {
     let workResult = new WorkResult();
     workResult.ended = result.ended;
-    (<any>workResult).id = result.id;
+    (workResult as any).id = result.id;
     workResult.result = result.result_json ? JSON.parse(result.result_json) : null;
     workResult.started = result.started;
     if (result.error_message) {

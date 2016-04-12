@@ -1,6 +1,7 @@
 "use strict";
 var node_mysql2_wrapper_1 = require('node-mysql2-wrapper');
 function createWorkTables(sql, workTableName, workResultTableName, workChildrenTableName) {
+    'use strict';
     if (workTableName === void 0) { workTableName = 'work'; }
     if (workResultTableName === void 0) { workResultTableName = 'work_result'; }
     if (workChildrenTableName === void 0) { workChildrenTableName = 'work_children'; }
@@ -32,6 +33,7 @@ function createWorkTables(sql, workTableName, workResultTableName, workChildrenT
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = createWorkTables;
 function createWorkTable(sql, tableName) {
+    'use strict';
     return node_mysql2_wrapper_1.create(sql, tableName, {
         id: {
             definition: 'INT NOT NULL AUTO_INCREMENT',
@@ -58,6 +60,7 @@ function createWorkTable(sql, tableName) {
     });
 }
 function createWorkResultTable(sql, tableName) {
+    'use strict';
     return node_mysql2_wrapper_1.create(sql, tableName, {
         id: {
             definition: 'INT NOT NULL AUTO_INCREMENT',
@@ -87,6 +90,7 @@ function createWorkResultTable(sql, tableName) {
     });
 }
 function createWorkChildrenTable(sql, tableName) {
+    'use strict';
     return node_mysql2_wrapper_1.create(sql, tableName, {
         parent_work_id: {
             definition: 'INT NOT NULL',
