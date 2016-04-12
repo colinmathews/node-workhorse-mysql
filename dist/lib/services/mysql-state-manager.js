@@ -89,11 +89,11 @@ var MySQLStateManager = (function () {
         if (!workResult.id) {
             return node_mysql2_wrapper_1.insert(exec, this.workResultTableName, [setArgs])
                 .then(function (result) {
-                workResult.id = result.insertId.toString();
+                workResult.id = result.insertId;
             });
         }
         return node_mysql2_wrapper_1.update(exec, this.workResultTableName, setArgs, {
-            id: parseInt(workResult.id, 10)
+            id: workResult.id
         })
             .then(function (result) {
             if (result.affectedRows !== 1) {
@@ -113,6 +113,7 @@ var MySQLStateManager = (function () {
         return exec.done(promise);
     };
     MySQLStateManager.prototype.saveFinalizerStarted = function (work) {
+        var _this = this;
         if (work) {
             work.finalizerResult.id = work.finalizerResultID;
         }
@@ -120,6 +121,11 @@ var MySQLStateManager = (function () {
         var promise = this.saveWorkResult(exec, work.finalizerResult)
             .then(function () {
             work.finalizerResultID = work.finalizerResult.id;
+            return node_mysql2_wrapper_1.update(exec, _this.workTableName, {
+                finalizer_result_id: work.finalizerResultID
+            }, {
+                id: parseInt(work.id, 10)
+            });
         });
         return exec.done(promise);
     };
@@ -167,27 +173,43 @@ var MySQLStateManager = (function () {
             if (!workRow) {
                 return null;
             }
-            work = _this.deserializeWork(workRow);
-            return _this.loadWorkResult(exec, workRow.result_id)
-                .then(function (result) {
-                if (result) {
-                    work.result = _this.deserializeResult(result);
-                    work.resultID = work.result.id;
-                }
-                return _this.loadWorkResult(exec, workRow.finalizer_result_id);
-            })
-                .then(function (result) {
-                if (result) {
-                    work.finalizerResult = _this.deserializeResult(result);
-                    work.finalizerResultID = work.finalizerResult.id;
-                }
-                return _this.loadChildren(exec, work);
-            });
+            return _this.finishLoadingWork(exec, workRow);
         });
         return exec.done(promise);
     };
     MySQLStateManager.prototype.loadAll = function (ids) {
-        throw new Error('Not implemented yet');
+        var _this = this;
+        if (ids.length === 0) {
+            return es6_promise_1.Promise.resolve([]);
+        }
+        var exec = this.sql.transaction();
+        var promise = exec.query("select * from " + this.workTableName + " where id in (:ids)", {
+            ids: ids.map(function (row) { return parseInt(row, 10); })
+        })
+            .then(function (workRows) {
+            var promises = workRows.map(function (workRow) { return _this.finishLoadingWork(exec, workRow); });
+            return es6_promise_1.Promise.all(promises);
+        });
+        return exec.done(promise);
+    };
+    MySQLStateManager.prototype.finishLoadingWork = function (exec, workRow) {
+        var _this = this;
+        var work = this.deserializeWork(workRow);
+        return this.loadWorkResult(exec, workRow.result_id)
+            .then(function (result) {
+            if (result) {
+                work.result = _this.deserializeResult(result);
+                work.resultID = work.result.id;
+            }
+            return _this.loadWorkResult(exec, workRow.finalizer_result_id);
+        })
+            .then(function (result) {
+            if (result) {
+                work.finalizerResult = _this.deserializeResult(result);
+                work.finalizerResultID = work.finalizerResult.id;
+            }
+            return _this.loadChildren(exec, work);
+        });
     };
     MySQLStateManager.prototype.loadWorkResult = function (exec, id) {
         if (!id) {

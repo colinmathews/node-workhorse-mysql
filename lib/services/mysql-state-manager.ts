@@ -76,7 +76,7 @@ export default class MySQLStateManager implements StateManager {
         result_id: (<any>work).resultID
       }, {
         id: parseInt(work.id, 10)
-      })
+      });
     });
     return exec.done(promise);
   }
@@ -95,11 +95,11 @@ export default class MySQLStateManager implements StateManager {
     if (!(<any>workResult).id) {
       return insert(exec, this.workResultTableName, [setArgs])
       .then((result) => {
-        (<any>workResult).id = result.insertId.toString();
+        (<any>workResult).id = result.insertId;
       });
     }
     return update(exec, this.workResultTableName, setArgs, {
-      id: parseInt((<any>workResult).id, 10)
+      id: (<any>workResult).id
     })
     .then((result) => {
       if (result.affectedRows !== 1) {
@@ -115,9 +115,9 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.result)
-      .then(() => {
-        (<any>work).resultID = (<any>work.result).id;
-      });
+    .then(() => {
+      (<any>work).resultID = (<any>work.result).id;
+    });
     return exec.done(promise);
   }
 
@@ -128,9 +128,14 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
-      .then(() => {
-        (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
-      });
+    .then(() => {
+      (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
+      return update(exec, this.workTableName, {
+        finalizer_result_id: (<any>work).finalizerResultID
+      }, {
+          id: parseInt(work.id, 10)
+        })
+    });
     return exec.done(promise);
   }
 
@@ -141,9 +146,9 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
-      .then(() => {
-        (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
-      });
+    .then(() => {
+      (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
+    });
     return exec.done(promise);
   }
 
@@ -181,29 +186,43 @@ export default class MySQLStateManager implements StateManager {
       if (!workRow) {
         return null;
       }
-
-      work = this.deserializeWork(workRow);
-      return this.loadWorkResult(exec, workRow.result_id)
-      .then((result) => {
-        if (result) {
-          work.result = this.deserializeResult(result);
-          (<any>work).resultID = (<any>work.result).id;
-        }
-        return this.loadWorkResult(exec, workRow.finalizer_result_id);
-      })
-      .then((result) => {
-        if (result) {
-          work.finalizerResult = this.deserializeResult(result);
-          (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
-        }
-        return this.loadChildren(exec, work);
-      });
+      return this.finishLoadingWork(exec, workRow);
     });
     return exec.done(promise);
   }
 
   loadAll(ids: string[]): Promise<Work[]> {
-    throw new Error('Not implemented yet');
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+    let exec = this.sql.transaction();
+    let promise = exec.query(`select * from ${this.workTableName} where id in (:ids)`, { 
+      ids: ids.map((row) => parseInt(row, 10))
+    })
+    .then((workRows) => {
+      let promises = workRows.map((workRow) => this.finishLoadingWork(exec, workRow));
+      return Promise.all(promises);
+    })
+    return exec.done(promise);
+  }
+
+  private finishLoadingWork(exec:Execution, workRow): Promise<Work> {
+    let work = this.deserializeWork(workRow);
+    return this.loadWorkResult(exec, workRow.result_id)
+    .then((result) => {
+      if (result) {
+        work.result = this.deserializeResult(result);
+        (<any>work).resultID = (<any>work.result).id;
+      }
+      return this.loadWorkResult(exec, workRow.finalizer_result_id);
+    })
+    .then((result) => {
+      if (result) {
+        work.finalizerResult = this.deserializeResult(result);
+        (<any>work).finalizerResultID = (<any>work.finalizerResult).id;
+      }
+      return this.loadChildren(exec, work);
+    });
   }
 
   private loadWorkResult(exec:Execution, id:number): Promise<WorkResult> {
