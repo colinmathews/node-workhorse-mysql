@@ -17,19 +17,19 @@ export default function createWorkTables(
     return createWorkChildrenTable(exec, workChildrenTableName);
   })
   .then(() => {
-    return addForeignKey(exec, workTableName, ['parent_id'], workTableName, ['id'], 'work_parent_id');
+    return addForeignKey(exec, workTableName, ['parent_id'], workTableName, ['id'], `${workTableName}_parent_id`);
   })
   .then(() => {
-    return addForeignKey(exec, workTableName, ['result_id'], workResultTableName, ['id'], 'work_result_id');
+    return addForeignKey(exec, workTableName, ['result_id'], workResultTableName, ['id'], `${workTableName}_result_id`);
   })
   .then(() => {
-    return addForeignKey(exec, workTableName, ['finalizer_result_id'], workResultTableName, ['id'], 'work_finalizer_result_id');
+    return addForeignKey(exec, workTableName, ['finalizer_result_id'], workResultTableName, ['id'], `${workTableName}_finalizer_result_id`);
   })
   .then(() => {
-    return addForeignKey(exec, workChildrenTableName, ['parent_work_id'], workTableName, ['id'], 'work_children_parent_id');
+    return addForeignKey(exec, workChildrenTableName, ['parent_work_id'], workTableName, ['id'], `${workChildrenTableName}_parent_id`);
   })
   .then(() => {
-    return addForeignKey(exec, workChildrenTableName, ['child_work_id'], workTableName, ['id'], 'work_children_child_id');
+    return addForeignKey(exec, workChildrenTableName, ['child_work_id'], workTableName, ['id'], `${workChildrenTableName}_child_id`);
   });
 
   return exec.done(promise);
@@ -74,10 +74,10 @@ function createWorkResultTable(sql: Execution, tableName: string): Promise<any> 
       definition: 'TEXT NULL'
     },
     started: {
-      definition: 'TIMESTAMP NULL'
+      definition: 'TIMESTAMP(3) NULL'
     },
     ended: {
-      definition: 'TIMESTAMP NULL'
+      definition: 'TIMESTAMP(3) NULL'
     },
     error_message: {
       definition: 'TEXT NULL'

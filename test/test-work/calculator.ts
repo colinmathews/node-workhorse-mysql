@@ -28,8 +28,25 @@ export default class Calculator implements Runnable {
     });
   }
 
-  private createChildWork(input: any) {
-    let newInput:any = {
+  onChildrenDone (work: Work): Promise<any> {
+    return work.deep(this.workhorse)
+    .then((deep) => {
+      return deep.children.reduce(
+        (result, row) => {
+          let add = 0;
+          if (row.finalizerResult) {
+            add += result + (row.finalizerResult.result || 0);
+          }
+          add += row.result.result;
+          return result + add;
+        },
+        0
+      );
+    });
+  }
+
+  private createChildWork (input: any): Work[] {
+    let newInput: any = {
       x: input.errorOnChildRun ? 'purposeful-error' : input.x,
       y: input.y
     };
@@ -37,19 +54,5 @@ export default class Calculator implements Runnable {
       newInput.recurse = input.recurse - 1;
     }
     return [new Work('working://dist/test/test-work/calculator', newInput)];
-  }
-
-  onChildrenDone (work: Work): Promise<any> {
-    return work.deep(this.workhorse)
-    .then((deep) => {
-      return deep.children.reduce((result, row) => {
-        var add = 0;
-        if (row.finalizerResult) {
-          add += result + (row.finalizerResult.result || 0);
-        }
-        add += row.result.result;
-        return result + add;
-      }, 0);
-    });
   }
 }

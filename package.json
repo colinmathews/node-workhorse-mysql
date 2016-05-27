@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Extensions to support storing data in MySQL",
   "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "dependencies": {
     "es6-promise": "^3.1.2",
     "node-mysql2-wrapper": "1.0.4",
@@ -30,8 +31,8 @@
     "pretest": "npm run build",
     "test": "mocha",
     "typings": "typings",
-    "lint": "tslint lib/**/*.ts test/**.*.ts index.ts",
-    "lint:q": "tslint --force lib/**/*.ts test/**.*.ts index.ts"
+    "lint": "tslint lib/**/*.ts test/**/*.ts index.ts",
+    "lint:q": "tslint --force lib/**/*.ts test/**/*.ts index.ts"
   },
   "repository": {
     "type": "git",

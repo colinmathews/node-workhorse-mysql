@@ -28,16 +28,6 @@ var Calculator = (function () {
             });
         });
     };
-    Calculator.prototype.createChildWork = function (input) {
-        var newInput = {
-            x: input.errorOnChildRun ? 'purposeful-error' : input.x,
-            y: input.y
-        };
-        if (input.recurse) {
-            newInput.recurse = input.recurse - 1;
-        }
-        return [new node_workhorse_1.Work('working://dist/test/test-work/calculator', newInput)];
-    };
     Calculator.prototype.onChildrenDone = function (work) {
         return work.deep(this.workhorse)
             .then(function (deep) {
@@ -50,6 +40,16 @@ var Calculator = (function () {
                 return result + add;
             }, 0);
         });
+    };
+    Calculator.prototype.createChildWork = function (input) {
+        var newInput = {
+            x: input.errorOnChildRun ? 'purposeful-error' : input.x,
+            y: input.y
+        };
+        if (input.recurse) {
+            newInput.recurse = input.recurse - 1;
+        }
+        return [new node_workhorse_1.Work('working://dist/test/test-work/calculator', newInput)];
     };
     return Calculator;
 }());
