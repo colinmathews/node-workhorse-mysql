@@ -20,6 +20,9 @@ var MySQLStateManager = (function () {
     };
     MySQLStateManager.prototype.saveAll = function (work) {
         var _this = this;
+        if (work.length === 0) {
+            return es6_promise_1.Promise.resolve();
+        }
         var exec = this.sql.transaction();
         var promises = work.map(function (row) { return _this.saveOnePromise(exec, row); });
         var promise = es6_promise_1.Promise.all(promises);
@@ -82,6 +85,9 @@ var MySQLStateManager = (function () {
                 is_finished: false
             };
         });
+        if (rows.length === 0) {
+            return es6_promise_1.Promise.resolve();
+        }
         var promise = node_mysql2_wrapper_1.insert(exec, this.workChildrenTableName, rows);
         return exec.done(promise);
     };

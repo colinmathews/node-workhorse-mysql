@@ -21,6 +21,9 @@ export default class MySQLStateManager implements StateManager {
   }
 
   saveAll(work: Work[]): Promise<any> {
+    if (work.length === 0) {
+      return Promise.resolve();
+    }
     let exec = this.sql.transaction();
     let promises = work.map((row) => this.saveOnePromise(exec, row));
     let promise = Promise.all(promises);
@@ -100,6 +103,9 @@ export default class MySQLStateManager implements StateManager {
         is_finished: false
       };
     });
+    if (rows.length === 0) {
+      return Promise.resolve();
+    }
     let promise = insert(exec, this.workChildrenTableName, rows);
     return exec.done(promise);
   }
