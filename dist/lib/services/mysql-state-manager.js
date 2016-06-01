@@ -77,7 +77,6 @@ var MySQLStateManager = (function () {
         return exec.done(promise);
     };
     MySQLStateManager.prototype.saveCreatedChildren = function (work) {
-        var exec = this.sql.transaction();
         var rows = work.childrenIDs.map(function (row) {
             return {
                 parent_work_id: parseInt(work.id, 10),
@@ -88,6 +87,7 @@ var MySQLStateManager = (function () {
         if (rows.length === 0) {
             return es6_promise_1.Promise.resolve();
         }
+        var exec = this.sql.transaction();
         var promise = node_mysql2_wrapper_1.insert(exec, this.workChildrenTableName, rows);
         return exec.done(promise);
     };

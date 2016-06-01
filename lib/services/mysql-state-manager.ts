@@ -95,7 +95,6 @@ export default class MySQLStateManager implements StateManager {
   }
 
   saveCreatedChildren(work: Work): Promise<any> {
-    let exec = this.sql.transaction();
     let rows = work.childrenIDs.map((row) => {
       return {
         parent_work_id: parseInt(work.id, 10),
@@ -106,6 +105,7 @@ export default class MySQLStateManager implements StateManager {
     if (rows.length === 0) {
       return Promise.resolve();
     }
+    let exec = this.sql.transaction();
     let promise = insert(exec, this.workChildrenTableName, rows);
     return exec.done(promise);
   }
