@@ -2,6 +2,19 @@
 var es6_promise_1 = require('es6-promise');
 var node_workhorse_1 = require('node-workhorse');
 var node_mysql2_wrapper_1 = require('node-mysql2-wrapper');
+/**
+ * Dates are stored in UTC format, but when they're pulled out
+ * of the DB they are interpreted as local times. So we need to push them to UTC.
+ */
+function deserializeDate(raw) {
+    'use strict';
+    if (!raw) {
+        return null;
+    }
+    var offsetMinutes = raw.getTimezoneOffset();
+    return new Date(raw.valueOf() - offsetMinutes * 1000 * 60);
+}
+exports.deserializeDate = deserializeDate;
 var MySQLStateManager = (function () {
     function MySQLStateManager(config, workTableName, workResultTableName, workChildrenTableName) {
         if (workTableName === void 0) { workTableName = 'work'; }
@@ -155,8 +168,8 @@ var MySQLStateManager = (function () {
     };
     MySQLStateManager.prototype.saveWorkResult = function (exec, workResult) {
         var setArgs = {
-            started: workResult.started,
-            ended: workResult.ended,
+            started: workResult.started ? workResult.started.toISOString() : null,
+            ended: workResult.ended ? workResult.ended.toISOString() : null,
             result_json: workResult.result ? JSON.stringify(workResult.result) : null,
             error_message: workResult.error ? workResult.error.message : null,
             error_stack: workResult.error ? workResult.error.stack : null,
@@ -229,10 +242,10 @@ var MySQLStateManager = (function () {
     };
     MySQLStateManager.prototype.deserializeResult = function (result) {
         var workResult = new node_workhorse_1.WorkResult();
-        workResult.ended = result.ended;
+        workResult.ended = deserializeDate(result.ended);
         workResult.id = result.id;
         workResult.result = result.result_json ? JSON.parse(result.result_json) : null;
-        workResult.started = result.started;
+        workResult.started = deserializeDate(result.started);
         if (result.error_message) {
             workResult.error = new Error(result.error_message);
             workResult.error.stack = result.error_stack;

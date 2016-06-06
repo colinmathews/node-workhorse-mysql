@@ -2,6 +2,19 @@ import { Promise } from 'es6-promise';
 import { Work, WorkResult, StateManager, Workhorse} from 'node-workhorse';
 import { MySQL, MySQLConfig, Execution, insert, update, select, selectOne } from 'node-mysql2-wrapper';
 
+/**
+ * Dates are stored in UTC format, but when they're pulled out
+ * of the DB they are interpreted as local times. So we need to push them to UTC.
+ */
+export function deserializeDate(raw: any): Date {
+  'use strict';
+  if (!raw) {
+    return null;
+  }
+  let offsetMinutes = raw.getTimezoneOffset();
+  return new Date(raw.valueOf() - offsetMinutes * 1000 * 60);
+}
+
 export default class MySQLStateManager implements StateManager {
   workhorse: Workhorse;
   sql: MySQL;
@@ -37,15 +50,15 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.result)
-    .then(() => {
-      (work as any).resultID = (work.result as any).id;
-      return update(
-        exec,
-        this.workTableName,
-        { result_id: (work as any).resultID },
-        { id: parseInt(work.id, 10) }
-      );
-    });
+      .then(() => {
+        (work as any).resultID = (work.result as any).id;
+        return update(
+          exec,
+          this.workTableName,
+          { result_id: (work as any).resultID },
+          { id: parseInt(work.id, 10) }
+        );
+      });
     return exec.done(promise);
   }
 
@@ -56,9 +69,9 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.result)
-    .then(() => {
-      (work as any).resultID = (work.result as any).id;
-    });
+      .then(() => {
+        (work as any).resultID = (work.result as any).id;
+      });
     return exec.done(promise);
   }
 
@@ -69,15 +82,15 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
-    .then(() => {
-      (work as any).finalizerResultID = (work.finalizerResult as any).id;
-      return update(
-        exec,
-        this.workTableName,
-        { finalizer_result_id: (work as any).finalizerResultID },
-        { id: parseInt(work.id, 10) }
-      );
-    });
+      .then(() => {
+        (work as any).finalizerResultID = (work.finalizerResult as any).id;
+        return update(
+          exec,
+          this.workTableName,
+          { finalizer_result_id: (work as any).finalizerResultID },
+          { id: parseInt(work.id, 10) }
+        );
+      });
     return exec.done(promise);
   }
 
@@ -88,9 +101,9 @@ export default class MySQLStateManager implements StateManager {
 
     let exec = this.sql.transaction();
     let promise = this.saveWorkResult(exec, work.finalizerResult)
-    .then(() => {
-      (work as any).finalizerResultID = (work.finalizerResult as any).id;
-    });
+      .then(() => {
+        (work as any).finalizerResultID = (work.finalizerResult as any).id;
+      });
     return exec.done(promise);
   }
 
@@ -129,12 +142,12 @@ export default class MySQLStateManager implements StateManager {
     let promise = selectOne(exec, this.workTableName, {
       id: parseInt(id, 10)
     })
-    .then((workRow) => {
-      if (!workRow) {
-        return null;
-      }
-      return this.finishLoadingWork(exec, workRow);
-    });
+      .then((workRow) => {
+        if (!workRow) {
+          return null;
+        }
+        return this.finishLoadingWork(exec, workRow);
+      });
     return exec.done(promise);
   }
 
@@ -146,10 +159,10 @@ export default class MySQLStateManager implements StateManager {
     let promise = exec.query(`select * from ${this.workTableName} where id in (:ids)`, {
       ids: ids.map((row) => parseInt(row, 10))
     })
-    .then((workRows) => {
-      let promises = workRows.map((workRow) => this.finishLoadingWork(exec, workRow));
-      return Promise.all(promises);
-    });
+      .then((workRows) => {
+        let promises = workRows.map((workRow) => this.finishLoadingWork(exec, workRow));
+        return Promise.all(promises);
+      });
     return exec.done(promise);
   }
 
@@ -182,8 +195,8 @@ export default class MySQLStateManager implements StateManager {
 
   private saveWorkResult(exec: Execution, workResult: WorkResult): Promise<any> {
     let setArgs = {
-      started: workResult.started,
-      ended: workResult.ended,
+      started: workResult.started ? workResult.started.toISOString() : null,
+      ended: workResult.ended ? workResult.ended.toISOString() : null,
       result_json: workResult.result ? JSON.stringify(workResult.result) : null,
       error_message: workResult.error ? workResult.error.message : null,
       error_stack: workResult.error ? workResult.error.stack : null,
@@ -211,20 +224,20 @@ export default class MySQLStateManager implements StateManager {
   private finishLoadingWork(exec: Execution, workRow: any): Promise<Work> {
     let work = this.deserializeWork(workRow);
     return this.loadWorkResult(exec, workRow.result_id)
-    .then((result) => {
-      if (result) {
-        work.result = this.deserializeResult(result);
-        (work as any).resultID = (work.result as any).id;
-      }
-      return this.loadWorkResult(exec, workRow.finalizer_result_id);
-    })
-    .then((result) => {
-      if (result) {
-        work.finalizerResult = this.deserializeResult(result);
-        (work as any).finalizerResultID = (work.finalizerResult as any).id;
-      }
-      return this.loadChildren(exec, work);
-    });
+      .then((result) => {
+        if (result) {
+          work.result = this.deserializeResult(result);
+          (work as any).resultID = (work.result as any).id;
+        }
+        return this.loadWorkResult(exec, workRow.finalizer_result_id);
+      })
+      .then((result) => {
+        if (result) {
+          work.finalizerResult = this.deserializeResult(result);
+          (work as any).finalizerResultID = (work.finalizerResult as any).id;
+        }
+        return this.loadChildren(exec, work);
+      });
   }
 
   private loadWorkResult(exec: Execution, id: number): Promise<WorkResult> {
@@ -240,13 +253,13 @@ export default class MySQLStateManager implements StateManager {
     return select(exec, this.workChildrenTableName, {
       parent_work_id: parseInt(work.id, 10)
     })
-    .then((result) => {
-      work.childrenIDs = result.map((row) => row.child_work_id.toString());
-      work.finishedChildrenIDs = result
-      .filter((row) => !!row.is_finished)
-      .map((row) => row.child_work_id.toString());
-      return work;
-    });
+      .then((result) => {
+        work.childrenIDs = result.map((row) => row.child_work_id.toString());
+        work.finishedChildrenIDs = result
+          .filter((row) => !!row.is_finished)
+          .map((row) => row.child_work_id.toString());
+        return work;
+      });
   }
 
   private deserializeWork(result: any): Work {
@@ -261,10 +274,10 @@ export default class MySQLStateManager implements StateManager {
 
   private deserializeResult(result: any): WorkResult {
     let workResult = new WorkResult();
-    workResult.ended = result.ended;
+    workResult.ended = deserializeDate(result.ended);
     (workResult as any).id = result.id;
     workResult.result = result.result_json ? JSON.parse(result.result_json) : null;
-    workResult.started = result.started;
+    workResult.started = deserializeDate(result.started);
     if (result.error_message) {
       workResult.error = new Error(result.error_message);
       workResult.error.stack = result.error_stack;
