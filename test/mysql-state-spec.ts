@@ -54,6 +54,7 @@ describe('MySQLStateManager', () => {
         .then((work: Work) => {
           assert.isNotNull(work.result);
           assert.equal(work.result.result, 3);
+          assert.isOk(work.created);
         });
     });
 

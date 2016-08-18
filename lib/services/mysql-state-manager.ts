@@ -1,5 +1,5 @@
 import { Promise } from 'es6-promise';
-import { Work, WorkResult, StateManager, Workhorse} from 'node-workhorse';
+import { Work, WorkResult, IStateManager, Workhorse} from 'node-workhorse';
 import { MySQL, MySQLConfig, Execution, insert, update, select, selectOne } from 'node-mysql2-wrapper';
 
 /**
@@ -15,7 +15,7 @@ export function deserializeDate(raw: any): Date {
   return new Date(raw.valueOf() - offsetMinutes * 1000 * 60);
 }
 
-export default class MySQLStateManager implements StateManager {
+export default class MySQLStateManager implements IStateManager {
   workhorse: Workhorse;
   sql: MySQL;
 
@@ -167,14 +167,18 @@ export default class MySQLStateManager implements StateManager {
   }
 
   private saveOnePromise(exec: Execution, work: Work): Promise<any> {
+    work.updated = new Date();
     let setArgs = {
+      updated: work.updated.toISOString(),
       work_load_href: work.workLoadHref,
       input_json: JSON.stringify(work.input),
       ancestor_level: work.ancestorLevel,
       parent_id: work.parentID ? parseInt(work.parentID, 10) : null
-    };
+    } as any;
 
     if (!work.id) {
+      work.created = new Date();
+      setArgs.created = work.created.toISOString();
       return insert(exec, this.workTableName, [setArgs])
         .then((result) => {
           work.id = result.insertId.toString();

@@ -42,6 +42,12 @@ function createWorkTable(sql: Execution, tableName: string): Promise<any> {
       definition: 'INT NOT NULL AUTO_INCREMENT',
       isPrimary: true
     },
+    created: {
+      definition: 'TIMESTAMP(3) NOT NULL'
+    },
+    updated: {
+      definition: 'TIMESTAMP(3) NOT NULL'
+    },
     work_load_href: {
       definition: 'VARCHAR(1024) NOT NULL'
     },

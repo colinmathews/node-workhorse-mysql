@@ -49,6 +49,7 @@ describe('MySQLStateManager', function () {
                 .then(function (work) {
                 chai_1.assert.isNotNull(work.result);
                 chai_1.assert.equal(work.result.result, 3);
+                chai_1.assert.isOk(work.created);
             });
         });
         it('should recurse a few times', function () {

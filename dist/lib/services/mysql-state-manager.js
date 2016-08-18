@@ -142,13 +142,17 @@ var MySQLStateManager = (function () {
         return exec.done(promise);
     };
     MySQLStateManager.prototype.saveOnePromise = function (exec, work) {
+        work.updated = new Date();
         var setArgs = {
+            updated: work.updated.toISOString(),
             work_load_href: work.workLoadHref,
             input_json: JSON.stringify(work.input),
             ancestor_level: work.ancestorLevel,
             parent_id: work.parentID ? parseInt(work.parentID, 10) : null
         };
         if (!work.id) {
+            work.created = new Date();
+            setArgs.created = work.created.toISOString();
             return node_mysql2_wrapper_1.insert(exec, this.workTableName, [setArgs])
                 .then(function (result) {
                 work.id = result.insertId.toString();

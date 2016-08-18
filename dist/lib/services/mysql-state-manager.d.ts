@@ -1,11 +1,11 @@
-import { Work, StateManager, Workhorse } from 'node-workhorse';
+import { Work, IStateManager, Workhorse } from 'node-workhorse';
 import { MySQL, MySQLConfig } from 'node-mysql2-wrapper';
 /**
  * Dates are stored in UTC format, but when they're pulled out
  * of the DB they are interpreted as local times. So we need to push them to UTC.
  */
 export declare function deserializeDate(raw: any): Date;
-export default class MySQLStateManager implements StateManager {
+export default class MySQLStateManager implements IStateManager {
     config: MySQLConfig;
     workTableName: string;
     workResultTableName: string;

@@ -1,7 +1,7 @@
 import { Promise } from 'es6-promise';
-import { Runnable, Workhorse, Response, Work } from 'node-workhorse';
+import { IRunnable, Workhorse, Response, Work } from 'node-workhorse';
 
-export default class Calculator implements Runnable {
+export default class Calculator implements IRunnable {
   errors: Error[] = [];
   workhorse: Workhorse;
 
