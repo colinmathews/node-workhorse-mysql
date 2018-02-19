@@ -8,7 +8,7 @@
     "es6-promise": "^3.1.2",
     "node-mysql2-wrapper": "1.0.7",
     "node-uuid": "^1.4.7",
-    "node-workhorse": "1.1.7",
+    "node-workhorse": "1.1.8",
     "source-map-support": "^0.4.0"
   },
   "devDependencies": {
