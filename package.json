@@ -1,6 +1,6 @@
 {
   "name": "node-workhorse-mysql",
-  "version": "0.0.13",
+  "version": "1.0.1",
   "description": "Extensions to support storing data in MySQL",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
