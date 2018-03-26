@@ -173,9 +173,9 @@ export default class MySQLStateManager implements IStateManager {
       work_load_href: work.workLoadHref,
       input_json: JSON.stringify(work.input),
       ancestor_level: work.ancestorLevel,
-      parent_id: work.parentID ? parseInt(work.parentID, 10) : null
+      parent_id: work.parentID ? parseInt(work.parentID, 10) : null,
+      has_finalizer: work.hasFinalizer ? 1 : 0
     } as any;
-
     if (!work.id) {
       work.created = new Date();
       setArgs.created = work.created.toISOString();
@@ -273,6 +273,7 @@ export default class MySQLStateManager implements IStateManager {
     work.input = result.input_json ? JSON.parse(result.input_json) : null;
     work.parentID = result.parent_id ? result.parent_id.toString() : null;
     work.workLoadHref = result.work_load_href;
+    work.hasFinalizer = !!result.has_finalizer;
     return work;
   }
 

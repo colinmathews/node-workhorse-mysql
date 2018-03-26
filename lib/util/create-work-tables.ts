@@ -65,6 +65,9 @@ function createWorkTable(sql: Execution, tableName: string): Promise<any> {
     },
     ancestor_level: {
       definition: 'INT NOT NULL'
+    },
+    has_finalizer: {
+      definition: 'TINYINT NOT NULL'
     }
   });
 }
